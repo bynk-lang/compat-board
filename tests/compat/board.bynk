@@ -1,0 +1,198 @@
+suite compat.board {
+	case "newer versions rank higher" {
+		expect versionRank("0.309.4") > versionRank("0.309.3")
+		expect versionRank("0.310.0") > versionRank("0.309.10")
+		expect versionRank("1.0.0") > versionRank("0.999.999")
+	}
+
+	case "a pre-release ranks just below its release" {
+		expect versionRank("0.310.0-rc1") < versionRank("0.310.0")
+		expect versionRank("0.310.0-rc1") > versionRank("0.309.4")
+	}
+
+	case "escape covers the HTML specials" {
+		expect escape("<a href=\"x\">&</a>") == "&lt;a href=&quot;x&quot;&gt;&amp;&lt;/a&gt;"
+	}
+
+	case "columns are the newest versions first, up to the limit" {
+		let runs = [
+			Run {
+				repo: "bynk-lang/a",
+				kind: "example",
+				bynk_version: "0.309.3",
+				result: "pass",
+				commit: "0123456789abcdef0123456789abcdef01234567",
+				run_url: "https://github.com/bynk-lang/a/actions/runs/1",
+				finished_at: "2026-10-07T12:00:00Z",
+			},
+			Run {
+				repo: "bynk-lang/a",
+				kind: "example",
+				bynk_version: "0.309.4",
+				result: "fail",
+				commit: "0123456789abcdef0123456789abcdef01234567",
+				run_url: "https://github.com/bynk-lang/a/actions/runs/2",
+				finished_at: "2026-10-07T13:00:00Z",
+			},
+			Run {
+				repo: "bynk-lang/b",
+				kind: "action",
+				bynk_version: "0.309.0",
+				result: "pass",
+				commit: "0123456789abcdef0123456789abcdef01234567",
+				run_url: "https://github.com/bynk-lang/b/actions/runs/3",
+				finished_at: "2026-10-07T06:00:00Z",
+			},
+		]
+		let cols = columns(runs, 2)
+		expect cols.count() == 2
+		expect cols.first() == Some("0.309.4")
+		expect cols.skip(1).first() == Some("0.309.3")
+	}
+
+	case "an empty board says so" {
+		let page = render([], 8)
+		expect page.contains("No results yet.")
+		expect page.contains("<table") == false
+	}
+
+	case "a board shows each result, linked to its run, and a dash for a gap" {
+		let runs = [
+			Run {
+				repo: "bynk-lang/a",
+				kind: "example",
+				bynk_version: "0.309.4",
+				result: "pass",
+				commit: "0123456789abcdef0123456789abcdef01234567",
+				run_url: "https://github.com/bynk-lang/a/actions/runs/1",
+				finished_at: "2026-10-07T12:00:00Z",
+			},
+			Run {
+				repo: "bynk-lang/b",
+				kind: "action",
+				bynk_version: "0.309.3",
+				result: "fail",
+				commit: "0123456789abcdef0123456789abcdef01234567",
+				run_url: "https://github.com/bynk-lang/b/actions/runs/2",
+				finished_at: "2026-10-07T11:00:00Z",
+			},
+		]
+		let page = render(runs, 8)
+		expect page.contains(
+			"<td class=\"pass\"><a href=\"https://github.com/bynk-lang/a/actions/runs/1\""
+		)
+		expect page.contains(
+			"<td class=\"fail\"><a href=\"https://github.com/bynk-lang/b/actions/runs/2\""
+		)
+		expect page.contains("<td class=\"none\">")
+		expect page.contains("<td class=\"kind\">action</td>")
+	}
+
+	case "a new report is stored" {
+		let r <- api.POST("/runs", Run {
+			repo: "bynk-lang/a",
+			kind: "example",
+			bynk_version: "0.309.4",
+			result: "pass",
+			commit: "0123456789abcdef0123456789abcdef01234567",
+			run_url: "https://github.com/bynk-lang/a/actions/runs/1",
+			finished_at: "2026-10-07T12:00:00Z",
+		}) by Canary
+		expect r is Created(_)
+		let n <- Board("main").size()
+		expect n == 1
+	}
+
+	case "a retried report changes nothing" {
+		let run = Run {
+			repo: "bynk-lang/a",
+			kind: "example",
+			bynk_version: "0.309.4",
+			result: "pass",
+			commit: "0123456789abcdef0123456789abcdef01234567",
+			run_url: "https://github.com/bynk-lang/a/actions/runs/1",
+			finished_at: "2026-10-07T12:00:00Z",
+		}
+		let first <- api.POST("/runs", run) by Canary
+		let again <- api.POST("/runs", run) by Canary
+		expect first is Created(_)
+		expect again is Ok(_)
+		let n <- Board("main").size()
+		expect n == 1
+	}
+
+	case "a newer run replaces the result for its repository and version" {
+		let old = Run {
+			repo: "bynk-lang/a",
+			kind: "example",
+			bynk_version: "0.309.4",
+			result: "fail",
+			commit: "0123456789abcdef0123456789abcdef01234567",
+			run_url: "https://github.com/bynk-lang/a/actions/runs/1",
+			finished_at: "2026-10-07T12:00:00Z",
+		}
+		let new = Run {
+			...old,
+			result: "pass",
+			run_url: "https://github.com/bynk-lang/a/actions/runs/2",
+			finished_at: "2026-10-07T13:00:00Z",
+		}
+		let a <- api.POST("/runs", old) by Canary
+		let b <- api.POST("/runs", new) by Canary
+		expect b is Created(_)
+		let runs <- Board("main").all()
+		expect runs.count() == 1
+		expect runs.filter((r) => r.result == "pass").count() == 1
+	}
+
+	case "an older run arriving late does not replace a newer one" {
+		let new = Run {
+			repo: "bynk-lang/a",
+			kind: "example",
+			bynk_version: "0.309.4",
+			result: "pass",
+			commit: "0123456789abcdef0123456789abcdef01234567",
+			run_url: "https://github.com/bynk-lang/a/actions/runs/2",
+			finished_at: "2026-10-07T13:00:00Z",
+		}
+		let old = Run {
+			...new,
+			result: "fail",
+			run_url: "https://github.com/bynk-lang/a/actions/runs/1",
+			finished_at: "2026-10-07T12:00:00Z",
+		}
+		let a <- api.POST("/runs", new) by Canary
+		let b <- api.POST("/runs", old) by Canary
+		expect b is Ok(_)
+		let runs <- Board("main").all()
+		expect runs.filter((r) => r.result == "pass").count() == 1
+	}
+
+	case "each version keeps its own result" {
+		let a = Run {
+			repo: "bynk-lang/a",
+			kind: "example",
+			bynk_version: "0.309.3",
+			result: "pass",
+			commit: "0123456789abcdef0123456789abcdef01234567",
+			run_url: "https://github.com/bynk-lang/a/actions/runs/1",
+			finished_at: "2026-10-07T12:00:00Z",
+		}
+		let b = Run {
+			...a,
+			bynk_version: "0.309.4",
+			run_url: "https://github.com/bynk-lang/a/actions/runs/2",
+		}
+		let x <- api.POST("/runs", a) by Canary
+		let y <- api.POST("/runs", b) by Canary
+		let n <- Board("main").size()
+		expect n == 2
+	}
+
+	case "the board is public, as JSON and as a page" {
+		let j <- api.GET("/board.json") by Visitor
+		expect j is Ok(_)
+		let p <- api.GET("/") by Visitor
+		expect p is Raw(_, _)
+	}
+}

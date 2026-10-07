@@ -1,0 +1,237 @@
+context compat.board
+
+uses bynk.string
+
+-- The Bynk compatibility board: the org canary POSTs each run's result here
+-- (`POST /runs`, signed), and the board shows the latest result per repository
+-- and Bynk version, as JSON (`GET /board.json`) and as a page (`GET /`).
+--
+-- The model, the page and the service share one context for now: a refined
+-- type declared in a commons isn't imported where another module's emitted
+-- TypeScript names it (accuser/bynk#1778).
+-- The report: bynk-lang/.github canary/REPORTING.md -------------------------
+---
+A repository, as `owner/name`.
+---
+type Repo = String where Matches("[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?/[A-Za-z0-9._-]+")
+
+---
+A repository's kind in the canary registry (`canary/repos.json`).
+---
+type Kind = String where Matches("example|action|book")
+
+---
+A Bynk release, bare: `0.309.4`, or a pre-release such as `0.310.0-rc1`.
+---
+type Version = String where Matches("[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.]+)?")
+
+---
+Whether the repository's canary checks passed at that version.
+---
+type Outcome = String where Matches("pass|fail")
+
+---
+A full commit SHA.
+---
+type Commit = String where Matches("[0-9a-f]{40}")
+
+---
+The GitHub Actions run that produced the result.
+---
+type RunUrl = String where Matches("https://github\\.com/[^/]+/[^/]+/actions/runs/[0-9]+(?:/attempts/[0-9]+)?")
+
+---
+When the result was decided: RFC 3339, UTC, to the second.
+---
+type FinishedAt = String where Matches("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z")
+
+---
+One canary result, exactly the body of `POST /runs` in bynk-lang/.github's
+`canary/REPORTING.md`.
+---
+type Run = {
+	repo: Repo,
+	kind: Kind,
+	bynk_version: Version,
+	result: Outcome,
+	commit: Commit,
+	run_url: RunUrl,
+	finished_at: FinishedAt,
+}
+
+---
+The key a result is kept under: one result per repository and version.
+---
+fn slot(repo: String, version: String) -> String { "\(repo)#\(version)" }
+
+---
+An integer that orders versions: higher is newer. `major.minor.patch` are
+weighted so each part dominates the next, and a pre-release sorts just below
+its release (`0.310.0-rc1` < `0.310.0`). An unparsable part counts as 0.
+---
+fn versionRank(version: String) -> Int {
+	let parts = version.split("-")
+	let core = parts.first().getOrElse(version)
+	let pre = parts.count() > 1
+	let nums = core.split(".").map((p) => Int.parse(p).getOrElse(0))
+	let major = nums.first().getOrElse(0)
+	let minor = nums.skip(1).first().getOrElse(0)
+	let patch = nums.skip(2).first().getOrElse(0)
+	let base = ((major * 1000000 + minor) * 1000 + patch) * 2
+	match pre {
+		true => base,
+		false => base + 1,
+	}
+}
+
+-- The page --------------------------------------------------------------------
+---
+Escapes text for an HTML body or a double-quoted attribute.
+---
+fn escape(s: String) -> String {
+	s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
+}
+
+---
+The versions to show as columns: every version reported, newest first, at
+most `limit` of them.
+---
+fn columns(runs: List[Run], limit: Int) -> List[String] {
+	runs.map((r) => r.bynk_version).distinct().sortBy((v) => 0 - versionRank(v)).take(limit)
+}
+
+---
+The repositories to show as rows, alphabetically.
+---
+fn rows(runs: List[Run]) -> List[String] { runs.map((r) => r.repo).distinct().sortBy((r) => r) }
+
+---
+One cell: the result for a repository at a version, linked to its run, or
+a dash if nothing was reported.
+---
+fn cell(runs: List[Run], repo: String, version: String) -> String {
+	let found = runs.filter((r) => r.repo == repo && r.bynk_version == version).first()
+	match found {
+		Some(r) => "<td class=\"\(r.result)\"><a href=\"\(escape(r.run_url))\" title=\"\(escape(r.finished_at))\">\(r.result)</a></td>",
+		None => "<td class=\"none\">–</td>",
+	}
+}
+
+---
+The kind of a repository, from its most recent report.
+---
+fn kindOf(runs: List[Run], repo: String) -> String {
+	runs.filter((r) => r.repo == repo).first().map((r) => "\(r.kind)").getOrElse("")
+}
+
+---
+The whole board as an HTML page: repositories down the side, the newest
+`limit` Bynk versions across the top.
+---
+fn render(runs: List[Run], limit: Int) -> String {
+	let versions = columns(runs, limit)
+	let head = join(versions.map((v) => "<th scope=\"col\">\(escape(v))</th>"), "")
+	let body = join(
+		rows(runs).map(
+			(repo) => {
+				let cells = join(versions.map((v) => cell(runs, repo, v)), "")
+				"<tr><th scope=\"row\"><a href=\"https://github.com/\(escape(repo))\">\(escape(repo))</a></th><td class=\"kind\">\(escape(kindOf(runs, repo)))</td>\(cells)</tr>"
+			}
+		),
+		""
+	)
+	let table = match runs.count() {
+		0 => "<p>No results yet.</p>",
+		_ => "<table><thead><tr><th scope=\"col\">Repository</th><th scope=\"col\">Kind</th>\(head)</tr></thead><tbody>\(body)</tbody></table>",
+	}
+	"<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Bynk compatibility</title><style>\(style())</style></head><body><h1>Bynk compatibility</h1><p>Which Bynk releases each repository in the <a href=\"https://github.com/bynk-lang/.github/blob/main/canary/README.md\">org canary</a> passes with. Each cell links to its run. <a href=\"/board.json\">JSON</a></p>\(table)</body></html>"
+}
+
+fn style() -> String {
+	"body{font:15px/1.5 system-ui,sans-serif;margin:2rem;color:#1f2328;background:#fff}table{border-collapse:collapse}th,td{padding:.35rem .7rem;border:1px solid #d0d7de;text-align:left}thead th{background:#f6f8fa}td.pass{background:#dafbe1}td.fail{background:#ffebe9}td.none{color:#8c959f;text-align:center}td a{color:inherit}td.kind{color:#59636e}@media (prefers-color-scheme:dark){body{color:#e6edf3;background:#0d1117}th,td{border-color:#30363d}thead th{background:#161b22}td.pass{background:#12361f}td.fail{background:#4b1113}td.kind{color:#9198a1}a{color:#4493f8}}"
+}
+
+-- The service -----------------------------------------------------------------
+---
+The canary's result reporter. It signs `<X-Timestamp>.<body>` with the
+shared key (HMAC-SHA256), and the boundary rejects a bad signature, or a
+timestamp more than five minutes off, with `401` before the handler runs.
+See bynk-lang/.github `canary/REPORTING.md`.
+---
+actor Canary {
+	auth = Signature(
+		secret = "COMPAT_BOARD_KEY",
+		header = "X-Signature",
+		timestamp = "X-Timestamp",
+		tolerance = 300
+	)
+}
+
+---
+What `POST /runs` answers: whether this report changed the board. A retried
+report (the same `run_url`) or one older than the result already held
+changes nothing.
+---
+type Ack = { stored: Bool }
+
+---
+The board as JSON: every result held, one per repository and version.
+---
+type BoardView = { runs: List[Run] }
+
+---
+The one board. Every write goes through this single instance, so a result
+and its run's dedup mark commit together.
+---
+agent Board {
+	key id: String
+
+	store latest: Map[String, Run]
+	store seen: Set[String]
+
+	on call save(run: Run) -> Effect[Bool] {
+		let retried <- seen.contains(run.run_url)
+		match retried {
+			true => false,
+			false => {
+				let _ <- seen.add(run.run_url)
+				let held <- latest.get(slot(run.repo, run.bynk_version))
+				let newer = match held {
+					Some(h) => run.finished_at >= h.finished_at,
+					None => true,
+				}
+				match newer {
+					true => {
+						let _ <- latest.put(slot(run.repo, run.bynk_version), run)
+						true
+					},
+					false => false,
+				}
+			},
+		}
+	}
+
+	on call all() -> Effect[List[Run]] { latest.values.collect() }
+
+	on call size() -> Effect[Int] { latest.size() }
+}
+
+service api from http {
+	on POST("/runs") (body: Run) -> Effect[HttpResult[Ack]] by Canary {
+		let stored <- Board("main").save(body)
+		match stored {
+			true => Created(Ack { stored: true }),
+			false => Ok(Ack { stored: false }),
+		}
+	}
+
+	on GET("/board.json") () -> Effect[HttpResult[BoardView]] by Visitor {
+		let runs <- Board("main").all()
+		Ok(BoardView { runs: runs })
+	}
+
+	on GET("/") () -> Effect[HttpResult[()]] by Visitor {
+		let runs <- Board("main").all()
+		Raw(Bytes.fromUtf8(render(runs, 8)), "text/html; charset=utf-8")
+	}
+}

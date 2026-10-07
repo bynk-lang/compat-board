@@ -1,0 +1,5 @@
+# Bynk project manifest. compat-board: which Bynk releases each repository
+# enrolled in the org canary passes with.
+[project]
+name = "compat-board"
+version = "0.1.0"

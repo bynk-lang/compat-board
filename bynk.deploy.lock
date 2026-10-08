@@ -1,0 +1,8 @@
+version = 1
+
+[environments.default.kv]
+
+[environments.default.workers.compat-board]
+deployed = true
+
+[environments.default.workers.compat-board.contracts]

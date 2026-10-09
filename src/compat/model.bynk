@@ -1,0 +1,77 @@
+commons compat.model
+
+-- The report the org canary POSTs, exactly the body of `POST /runs` in
+-- bynk-lang/.github canary/REPORTING.md, and how versions are ordered.
+---
+A repository, as `owner/name`.
+---
+type Repo = String where Matches("[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?/[A-Za-z0-9._-]+")
+
+---
+A repository's kind in the canary registry (`canary/repos.json`).
+---
+type Kind = String where Matches("example|action|book")
+
+---
+A Bynk release, bare: `0.309.4`, or a pre-release such as `0.310.0-rc1`.
+---
+type Version = String where Matches("[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.]+)?")
+
+---
+Whether the repository's canary checks passed at that version.
+---
+type Outcome = String where Matches("pass|fail")
+
+---
+A full commit SHA.
+---
+type Commit = String where Matches("[0-9a-f]{40}")
+
+---
+The GitHub Actions run that produced the result.
+---
+type RunUrl = String where Matches("https://github\\.com/[^/]+/[^/]+/actions/runs/[0-9]+(?:/attempts/[0-9]+)?")
+
+---
+When the result was decided: RFC 3339, UTC, to the second.
+---
+type FinishedAt = String where Matches("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z")
+
+---
+One canary result, exactly the body of `POST /runs` in bynk-lang/.github's
+`canary/REPORTING.md`.
+---
+type Run = {
+	repo: Repo,
+	kind: Kind,
+	bynk_version: Version,
+	result: Outcome,
+	commit: Commit,
+	run_url: RunUrl,
+	finished_at: FinishedAt,
+}
+
+---
+The key a result is kept under: one result per repository and version.
+---
+fn slot(repo: String, version: String) -> String { "\(repo)#\(version)" }
+
+---
+An integer that orders versions: higher is newer. `major.minor.patch` are
+weighted so each part dominates the next, and a pre-release sorts just below
+its release (`0.310.0-rc1` < `0.310.0`). An unparsable part counts as 0.
+---
+fn versionRank(version: String) -> Int {
+	let parts = version.split("-")
+	let core = parts.first().getOrElse(version)
+	let pre = parts.count() > 1
+	let nums = core.split(".").map((p) => Int.parse(p).getOrElse(0))
+	let major = nums.first().getOrElse(0)
+	let minor = nums.skip(1).first().getOrElse(0)
+	let patch = nums.skip(2).first().getOrElse(0)
+	let base = ((major * 1000000 + minor) * 1000 + patch) * 2
+	match pre {
+		true => base,
+		false => base + 1,
+	}
+}

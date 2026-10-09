@@ -1,0 +1,12 @@
+suite compat.model {
+	case "newer versions rank higher" {
+		expect versionRank("0.309.4") > versionRank("0.309.3")
+		expect versionRank("0.310.0") > versionRank("0.309.10")
+		expect versionRank("1.0.0") > versionRank("0.999.999")
+	}
+
+	case "a pre-release ranks just below its release" {
+		expect versionRank("0.310.0-rc1") < versionRank("0.310.0")
+		expect versionRank("0.310.0-rc1") > versionRank("0.309.4")
+	}
+}

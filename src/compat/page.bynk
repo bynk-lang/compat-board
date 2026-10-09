@@ -1,0 +1,72 @@
+commons compat.page
+
+uses compat.model
+uses bynk.string
+
+-- The board as an HTML page: repositories down the side, the newest Bynk
+-- versions across the top, each cell linked to its run.
+---
+Escapes text for an HTML body or a double-quoted attribute.
+---
+fn escape(s: String) -> String {
+	s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
+}
+
+---
+The versions to show as columns: every version reported, newest first, at
+most `limit` of them.
+---
+fn columns(runs: List[Run], limit: Int) -> List[String] {
+	runs.map((r) => r.bynk_version).distinct().sortBy((v) => 0 - versionRank(v)).take(limit)
+}
+
+---
+The repositories to show as rows, alphabetically.
+---
+fn rows(runs: List[Run]) -> List[String] { runs.map((r) => r.repo).distinct().sortBy((r) => r) }
+
+---
+One cell: the result for a repository at a version, linked to its run, or
+a dash if nothing was reported.
+---
+fn cell(runs: List[Run], repo: String, version: String) -> String {
+	let found = runs.filter((r) => r.repo == repo && r.bynk_version == version).first()
+	match found {
+		Some(r) => "<td class=\"\(r.result)\"><a href=\"\(escape(r.run_url))\" title=\"\(escape(r.finished_at))\">\(r.result)</a></td>",
+		None => "<td class=\"none\">–</td>",
+	}
+}
+
+---
+The kind of a repository, from its most recent report.
+---
+fn kindOf(runs: List[Run], repo: String) -> String {
+	runs.filter((r) => r.repo == repo).first().map((r) => "\(r.kind)").getOrElse("")
+}
+
+---
+The whole board as an HTML page: repositories down the side, the newest
+`limit` Bynk versions across the top.
+---
+fn render(runs: List[Run], limit: Int) -> String {
+	let versions = columns(runs, limit)
+	let head = join(versions.map((v) => "<th scope=\"col\">\(escape(v))</th>"), "")
+	let body = join(
+		rows(runs).map(
+			(repo) => {
+				let cells = join(versions.map((v) => cell(runs, repo, v)), "")
+				"<tr><th scope=\"row\"><a href=\"https://github.com/\(escape(repo))\">\(escape(repo))</a></th><td class=\"kind\">\(escape(kindOf(runs, repo)))</td>\(cells)</tr>"
+			}
+		),
+		""
+	)
+	let table = match runs.count() {
+		0 => "<p>No results yet.</p>",
+		_ => "<table><thead><tr><th scope=\"col\">Repository</th><th scope=\"col\">Kind</th>\(head)</tr></thead><tbody>\(body)</tbody></table>",
+	}
+	"<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Bynk compatibility</title><style>\(style())</style></head><body><h1>Bynk compatibility</h1><p>Which Bynk releases each repository in the <a href=\"https://github.com/bynk-lang/.github/blob/main/canary/README.md\">org canary</a> passes with. Each cell links to its run. <a href=\"/board.json\">JSON</a></p>\(table)</body></html>"
+}
+
+fn style() -> String {
+	"body{font:15px/1.5 system-ui,sans-serif;margin:2rem;color:#1f2328;background:#fff}table{border-collapse:collapse}th,td{padding:.35rem .7rem;border:1px solid #d0d7de;text-align:left}thead th{background:#f6f8fa}td.pass{background:#dafbe1}td.fail{background:#ffebe9}td.none{color:#8c959f;text-align:center}td a{color:inherit}td.kind{color:#59636e}@media (prefers-color-scheme:dark){body{color:#e6edf3;background:#0d1117}th,td{border-color:#30363d}thead th{background:#161b22}td.pass{background:#12361f}td.fail{background:#4b1113}td.kind{color:#9198a1}a{color:#4493f8}}"
+}

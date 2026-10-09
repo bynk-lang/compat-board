@@ -28,11 +28,13 @@ All of the board lives in one agent (a Durable Object), so a result and its dedu
 ## Layout
 
 ```text
-src/compat/board.bynk    the context: report types, the page, the agent, the service
-tests/compat/board.bynk  storage rules (new, retried, newer, older), ordering, the page
+src/compat/model.bynk    commons compat.model: the report types (REPORTING.md's body), version ordering
+src/compat/page.bynk     commons compat.page: the HTML page
+src/compat/board.bynk    context compat.board: the Canary actor, the Board agent, the HTTP service
+tests/compat/model.bynk  version ordering
+tests/compat/page.bynk   escaping, columns, the rendered page
+tests/compat/board.bynk  storage rules (new, retried, newer, older, per version), the public routes
 ```
-
-The report types, the page and the service share one file for now. A refined type declared in a commons isn't imported where another module's emitted TypeScript uses it (accuser/bynk#1778).
 
 ## Run it locally
 

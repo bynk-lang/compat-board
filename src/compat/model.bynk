@@ -52,11 +52,6 @@ type Run = {
 }
 
 ---
-The key a result is kept under: one result per repository and version.
----
-fn slot(repo: String, version: String) -> String { "\(repo)#\(version)" }
-
----
 An integer that orders versions: higher is newer. `major.minor.patch` are
 weighted so each part dominates the next, and a pre-release sorts just below
 its release (`0.310.0-rc1` < `0.310.0`). An unparsable part counts as 0.
@@ -67,11 +62,8 @@ fn versionRank(version: String) -> Int {
 	let pre = parts.count() > 1
 	let nums = core.split(".").map((p) => Int.parse(p).getOrElse(0))
 	let major = nums.first().getOrElse(0)
-	let minor = nums.skip(1).first().getOrElse(0)
-	let patch = nums.skip(2).first().getOrElse(0)
+	let minor = nums.get(1).getOrElse(0)
+	let patch = nums.get(2).getOrElse(0)
 	let base = ((major * 1000000 + minor) * 1000 + patch) * 2
-	match pre {
-		true => base,
-		false => base + 1,
-	}
+	if pre { base } else { base + 1 }
 }

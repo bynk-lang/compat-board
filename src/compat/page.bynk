@@ -2,6 +2,7 @@ commons compat.page
 
 uses compat.model
 uses bynk.string
+uses bynk.list
 
 -- The board as an HTML page: repositories down the side, the newest Bynk
 -- versions across the top, each cell linked to its run.
@@ -17,7 +18,7 @@ The versions to show as columns: every version reported, newest first, at
 most `limit` of them.
 ---
 fn columns(runs: List[Run], limit: Int) -> List[String] {
-	runs.map((r) => r.bynk_version).distinct().sortBy((v) => 0 - versionRank(v)).take(limit)
+	runs.map((r) => r.bynk_version).distinct().sortBy((v) => -versionRank(v)).take(limit)
 }
 
 ---
@@ -41,7 +42,11 @@ fn cell(runs: List[Run], repo: String, version: String) -> String {
 The kind of a repository, from its most recent report.
 ---
 fn kindOf(runs: List[Run], repo: String) -> String {
-	runs.filter((r) => r.repo == repo).first().map((r) => "\(r.kind)").getOrElse("")
+	let newest = reverse(runs.filter((r) => r.repo == repo).sortBy((r) => r.finished_at)).first()
+	match newest {
+		Some(r) => r.kind,
+		None => "",
+	}
 }
 
 ---

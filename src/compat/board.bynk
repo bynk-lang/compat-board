@@ -34,34 +34,36 @@ The board as JSON: every result held, one per repository and version.
 type BoardView = { runs: List[Run] }
 
 ---
-The one board. Every write goes through this single instance, so a result
-and its run's dedup mark commit together.
+The key a result is kept under: one result per repository and version.
+---
+fn slot(repo: String, version: String) -> String { "\(repo)#\(version)" }
+
+---
+The one board. Every write goes through this single instance, so a report is
+compared with the result it would replace and stored in one step.
 ---
 agent Board {
 	key id: String
 
 	store latest: Map[String, Run]
-	store seen: Set[String]
 
+	---
+	Stores a report if it is the first for its repository and version, or
+	strictly newer than the result held. A retried report has the same
+	`finished_at` as the result it would replace, so it changes nothing.
+	---
 	on call save(run: Run) -> Effect[Bool] {
-		let retried <- seen.contains(run.run_url)
-		match retried {
-			true => false,
-			false => {
-				let _ <- seen.add(run.run_url)
-				let held <- latest.get(slot(run.repo, run.bynk_version))
-				let newer = match held {
-					Some(h) => run.finished_at >= h.finished_at,
-					None => true,
-				}
-				match newer {
-					true => {
-						let _ <- latest.put(slot(run.repo, run.bynk_version), run)
-						true
-					},
-					false => false,
-				}
-			},
+		let key = slot(run.repo, run.bynk_version)
+		let held <- latest.get(key)
+		let newer = match held {
+			Some(h) => run.finished_at > h.finished_at,
+			None => true,
+		}
+		if newer {
+			let _ <- latest.put(key, run)
+			true
+		} else {
+			false
 		}
 	}
 
@@ -73,10 +75,7 @@ agent Board {
 service api from http {
 	on POST("/runs") (body: Run) -> Effect[HttpResult[Ack]] by Canary {
 		let stored <- Board("main").save(body)
-		match stored {
-			true => Created(Ack { stored: true }),
-			false => Ok(Ack { stored: false }),
-		}
+		if stored { Created(Ack { stored: true }) } else { Ok(Ack { stored: false }) }
 	}
 
 	on GET("/board.json") () -> Effect[HttpResult[BoardView]] by Visitor {

@@ -4,8 +4,6 @@
 # main deploys for real, once these repository secrets exist:
 #   CLOUDFLARE_API_TOKEN   a Cloudflare API token with Workers deploy scope
 #   CLOUDFLARE_ACCOUNT_ID  the Cloudflare account ID
-#   COMPAT_BOARD_KEY       the shared HMAC key the canary signs reports with
-#                          (the same value as the org's BYNK_CANARY_REPORT_KEY)
 # Until they do, the deploy job warns and skips rather than failing main.
 name: Deploy
 
@@ -54,12 +52,10 @@ jobs:
         env:
           TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          KEY: ${{ secrets.COMPAT_BOARD_KEY }}
         run: |
           missing=""
           [ -n "$TOKEN" ] || missing="$missing CLOUDFLARE_API_TOKEN"
           [ -n "$ACCOUNT" ] || missing="$missing CLOUDFLARE_ACCOUNT_ID"
-          [ -n "$KEY" ] || missing="$missing COMPAT_BOARD_KEY"
           if [ -n "$missing" ]; then
             echo "::warning::Not deploying: set the repository secret(s)${missing} (see README.md)"
             echo "configured=false" >> "$GITHUB_OUTPUT"
@@ -75,8 +71,6 @@ jobs:
           version: ${{ env.BYNK_VERSION }}
           cloudflare-api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           cloudflare-account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          secrets: |
-            COMPAT_BOARD_KEY=${{ secrets.COMPAT_BOARD_KEY }}
 
       # The action never commits. When the deploy changes bynk.deploy.lock (the
       # first deploy records the context), keep the new file to commit.

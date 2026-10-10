@@ -4,25 +4,9 @@ uses compat.model
 uses compat.page
 
 -- The Bynk compatibility board: the org canary POSTs each run's result here,
--- authenticated by the run's GitHub OIDC token (`POST /v2/runs`) or, until
--- every caller has moved over, by the shared key (`POST /runs`). The board
--- shows the latest result per repository and Bynk version, as JSON
+-- authenticated by the run's GitHub OIDC token (`POST /v2/runs`), and the
+-- board shows the latest result per repository and Bynk version, as JSON
 -- (`GET /board.json`) and as a page (`GET /`).
----
-The canary's result reporter. It signs `<X-Timestamp>.<body>` with the
-shared key (HMAC-SHA256), and the boundary rejects a bad signature, or a
-timestamp more than five minutes off, with `401` before the handler runs.
-See bynk-lang/.github `canary/REPORTING.md`.
----
-actor Canary {
-	auth = Signature(
-		secret = "COMPAT_BOARD_KEY",
-		header = "X-Signature",
-		timestamp = "X-Timestamp",
-		tolerance = 300
-	)
-}
-
 ---
 A canary run, as GitHub Actions' OIDC token names it in `sub`: a run on a
 branch of a bynk-lang repository. GitHub has two formats. Repositories
@@ -61,7 +45,7 @@ fn subjectRepo(subject: String) -> String {
 }
 
 ---
-What `POST /runs` answers: whether this report changed the board. A retried
+What `POST /v2/runs` answers: whether this report changed the board. A retried
 report (the same `run_url`) or one older than the result already held
 changes nothing.
 ---
@@ -113,15 +97,10 @@ agent Board {
 }
 
 service api from http {
-	on POST("/runs") (body: Run) -> Effect[HttpResult[Ack]] by Canary {
-		let stored <- Board("main").save(body)
-		if stored { Created(Ack { stored: true }) } else { Ok(Ack { stored: false }) }
-	}
-
 	---
-	The same report, authenticated by the run's OIDC token instead of the
-	shared key. `403` if the report is for a different repository than the
-	run that sent it.
+	Records a canary run's result, authenticated by the run's OIDC token.
+	`403` if the report is for a different repository than the run that sent
+	it.
 	---
 	on POST("/v2/runs") (body: Run) -> Effect[HttpResult[Ack]] by run: CanaryRun {
 		if subjectRepo("\(run.identity)") != "\(body.repo)" {

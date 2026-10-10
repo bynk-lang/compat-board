@@ -19,11 +19,11 @@ Bynk version.
 
 `POST /runs`:
 - **New result:** `201 {"stored": true}`.
-- **No change:** `200 {"stored": false}`. That's for a retried report (the same `run_url`), or one older than the result already held for that repository and version.
+- **No change:** `200 {"stored": false}`. That's for a retried report (the same `run_url`), or one no newer than the result already held for that repository and version. Results are compared by `finished_at`, so of two runs that finish in the same second, the first one reported is kept.
 - **Bad signature,** or a timestamp more than 300 seconds off: `401`.
 - **Body outside the contract** (an unknown `kind`, a `result` other than `pass` or `fail`, a malformed version, commit, run URL or timestamp): `400`.
 
-All of the board lives in one agent (a Durable Object), so a result and its dedup record are written together.
+All of the board lives in one agent (a Durable Object), so each report is compared with the result it would replace and stored in one step.
 
 ## Layout
 

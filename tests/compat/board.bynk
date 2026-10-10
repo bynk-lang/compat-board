@@ -79,6 +79,28 @@ suite compat.board {
 		expect runs.filter((r) => r.result == "pass").count() == 1
 	}
 
+	case "a different run finishing in the same second changes nothing" {
+		let first = Run {
+			repo: "bynk-lang/a",
+			kind: "example",
+			bynk_version: "0.309.4",
+			result: "pass",
+			commit: "0123456789abcdef0123456789abcdef01234567",
+			run_url: "https://github.com/bynk-lang/a/actions/runs/1",
+			finished_at: "2026-10-07T12:00:00Z",
+		}
+		let second = Run {
+			...first,
+			result: "fail",
+			run_url: "https://github.com/bynk-lang/a/actions/runs/2",
+		}
+		let a <- api.POST("/runs", first) by Canary
+		let b <- api.POST("/runs", second) by Canary
+		expect b is Ok(_)
+		let runs <- Board("main").all()
+		expect runs.filter((r) => r.result == "pass").count() == 1
+	}
+
 	case "each version keeps its own result" {
 		let a = Run {
 			repo: "bynk-lang/a",

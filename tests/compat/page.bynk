@@ -76,4 +76,26 @@ suite compat.page {
 		expect page.contains("<td class=\"none\">")
 		expect page.contains("<td class=\"kind\">action</td>")
 	}
+
+	case "a repository's kind comes from its most recent report" {
+		let older = Run {
+			repo: "bynk-lang/a",
+			kind: "example",
+			bynk_version: "0.309.3",
+			result: "pass",
+			commit: "0123456789abcdef0123456789abcdef01234567",
+			run_url: "https://github.com/bynk-lang/a/actions/runs/1",
+			finished_at: "2026-10-07T12:00:00Z",
+		}
+		let newer = Run {
+			...older,
+			kind: "action",
+			bynk_version: "0.309.4",
+			run_url: "https://github.com/bynk-lang/a/actions/runs/2",
+			finished_at: "2026-10-07T13:00:00Z",
+		}
+		let page = render([older, newer], 8)
+		expect page.contains("<td class=\"kind\">action</td>")
+		expect page.contains("<td class=\"kind\">example</td>") == false
+	}
 }

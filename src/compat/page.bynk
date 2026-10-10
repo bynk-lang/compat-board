@@ -16,20 +16,20 @@ fn escape(s: String) -> String {
 The versions to show as columns: every version reported, newest first, at
 most `limit` of them.
 ---
-fn columns(runs: List[Run], limit: Int) -> List[String] {
+fn columns(runs: List[Run], limit: Int) -> List[Version] {
 	runs.map((r) => r.bynk_version).distinct().sortBy((v) => 0 - versionRank(v)).take(limit)
 }
 
 ---
 The repositories to show as rows, alphabetically.
 ---
-fn rows(runs: List[Run]) -> List[String] { runs.map((r) => r.repo).distinct().sortBy((r) => r) }
+fn rows(runs: List[Run]) -> List[Repo] { runs.map((r) => r.repo).distinct().sortBy((r) => r) }
 
 ---
 One cell: the result for a repository at a version, linked to its run, or
 a dash if nothing was reported.
 ---
-fn cell(runs: List[Run], repo: String, version: String) -> String {
+fn cell(runs: List[Run], repo: Repo, version: Version) -> String {
 	let found = runs.filter((r) => r.repo == repo && r.bynk_version == version).first()
 	match found {
 		Some(r) => "<td class=\"\(r.result)\"><a href=\"\(escape(r.run_url))\" title=\"\(escape(r.finished_at))\">\(r.result)</a></td>",
@@ -40,7 +40,7 @@ fn cell(runs: List[Run], repo: String, version: String) -> String {
 ---
 The kind of a repository, from its most recent report.
 ---
-fn kindOf(runs: List[Run], repo: String) -> String {
+fn kindOf(runs: List[Run], repo: Repo) -> String {
 	runs.filter((r) => r.repo == repo).first().map((r) => "\(r.kind)").getOrElse("")
 }
 

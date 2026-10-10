@@ -34,9 +34,10 @@ The board as JSON: every result held, one per repository and version.
 type BoardView = { runs: List[Run] }
 
 ---
-The key a result is kept under: one result per repository and version.
+The key the board keeps a result under: one result per repository and
+version.
 ---
-fn slot(repo: String, version: String) -> String { "\(repo)#\(version)" }
+fn slot(repo: Repo, version: Version) -> String { "\(repo)#\(version)" }
 
 ---
 The one board. Every write goes through this single instance, so a report is

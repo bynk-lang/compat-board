@@ -128,4 +128,66 @@ suite compat.board {
 		let p <- api.GET("/") by Visitor
 		expect p is Raw(_, _)
 	}
+
+	case "a subject names its repository in either GitHub format" {
+		expect subjectRepo("repo:bynk-lang/bynk-ci:ref:refs/heads/main") == "bynk-lang/bynk-ci"
+		expect subjectRepo(
+			"repo:bynk-lang@295025398/compat-board@1409010265:ref:refs/heads/main"
+		) == "bynk-lang/compat-board"
+		expect subjectRepo(
+			"repo:bynk-lang/compat-board:ref:refs/heads/feature/x:y"
+		) == "bynk-lang/compat-board"
+	}
+
+	case "a run's OIDC report for its own repository is stored" {
+		let r <- api.POST("/v2/runs", Run {
+			repo: "bynk-lang/compat-board",
+			kind: "example",
+			bynk_version: "0.314.23",
+			result: "pass",
+			commit: "0123456789abcdef0123456789abcdef01234567",
+			run_url: "https://github.com/bynk-lang/compat-board/actions/runs/1",
+			finished_at: "2026-10-10T12:00:00Z",
+		}) by CanaryRun("repo:bynk-lang@295025398/compat-board@1409010265:ref:refs/heads/main")
+		expect r is Created(_)
+		let n <- Board("main").size()
+		expect n == 1
+	}
+
+	case "an old-format subject reports for its repository too, and a retry changes nothing" {
+		let run = Run {
+			repo: "bynk-lang/bynk-ci",
+			kind: "action",
+			bynk_version: "0.314.23",
+			result: "pass",
+			commit: "0123456789abcdef0123456789abcdef01234567",
+			run_url: "https://github.com/bynk-lang/bynk-ci/actions/runs/7",
+			finished_at: "2026-10-10T12:00:00Z",
+		}
+		let first <- api.POST(
+			"/v2/runs",
+			run
+		) by CanaryRun("repo:bynk-lang/bynk-ci:ref:refs/heads/main")
+		let again <- api.POST(
+			"/v2/runs",
+			run
+		) by CanaryRun("repo:bynk-lang/bynk-ci:ref:refs/heads/main")
+		expect first is Created(_)
+		expect again is Ok(_)
+	}
+
+	case "a run can't report for another repository" {
+		let r <- api.POST("/v2/runs", Run {
+			repo: "bynk-lang/compat-board",
+			kind: "example",
+			bynk_version: "0.314.23",
+			result: "fail",
+			commit: "0123456789abcdef0123456789abcdef01234567",
+			run_url: "https://github.com/bynk-lang/bynk-ci/actions/runs/8",
+			finished_at: "2026-10-10T12:00:00Z",
+		}) by CanaryRun("repo:bynk-lang/bynk-ci:ref:refs/heads/main")
+		expect r is Forbidden
+		let n <- Board("main").size()
+		expect n == 0
+	}
 }

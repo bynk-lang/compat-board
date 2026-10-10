@@ -32,7 +32,3 @@ jobs:
       kind: example
       source: .
       deploy-dry-run: true
-    secrets:
-      # The board reports its own canary results to itself, once deployed.
-      report-url: ${{ secrets.BYNK_CANARY_REPORT_URL }}
-      report-key: ${{ secrets.BYNK_CANARY_REPORT_KEY }}

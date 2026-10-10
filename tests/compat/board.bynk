@@ -1,6 +1,6 @@
 suite compat.board {
 	case "a new report is stored" {
-		let r <- api.POST("/runs", Run {
+		let r <- api.POST("/v2/runs", Run {
 			repo: "bynk-lang/a",
 			kind: "example",
 			bynk_version: "0.309.4",
@@ -8,7 +8,7 @@ suite compat.board {
 			commit: "0123456789abcdef0123456789abcdef01234567",
 			run_url: "https://github.com/bynk-lang/a/actions/runs/1",
 			finished_at: "2026-10-07T12:00:00Z",
-		}) by Canary
+		}) by CanaryRun("repo:bynk-lang/a:ref:refs/heads/main")
 		expect r is Created(_)
 		let n <- Board("main").size()
 		expect n == 1
@@ -24,8 +24,8 @@ suite compat.board {
 			run_url: "https://github.com/bynk-lang/a/actions/runs/1",
 			finished_at: "2026-10-07T12:00:00Z",
 		}
-		let first <- api.POST("/runs", run) by Canary
-		let again <- api.POST("/runs", run) by Canary
+		let first <- api.POST("/v2/runs", run) by CanaryRun("repo:bynk-lang/a:ref:refs/heads/main")
+		let again <- api.POST("/v2/runs", run) by CanaryRun("repo:bynk-lang/a:ref:refs/heads/main")
 		expect first is Created(_)
 		expect again is Ok(_)
 		let n <- Board("main").size()
@@ -48,8 +48,8 @@ suite compat.board {
 			run_url: "https://github.com/bynk-lang/a/actions/runs/2",
 			finished_at: "2026-10-07T13:00:00Z",
 		}
-		let a <- api.POST("/runs", old) by Canary
-		let b <- api.POST("/runs", new) by Canary
+		let a <- api.POST("/v2/runs", old) by CanaryRun("repo:bynk-lang/a:ref:refs/heads/main")
+		let b <- api.POST("/v2/runs", new) by CanaryRun("repo:bynk-lang/a:ref:refs/heads/main")
 		expect b is Created(_)
 		let runs <- Board("main").all()
 		expect runs.count() == 1
@@ -72,8 +72,8 @@ suite compat.board {
 			run_url: "https://github.com/bynk-lang/a/actions/runs/1",
 			finished_at: "2026-10-07T12:00:00Z",
 		}
-		let a <- api.POST("/runs", new) by Canary
-		let b <- api.POST("/runs", old) by Canary
+		let a <- api.POST("/v2/runs", new) by CanaryRun("repo:bynk-lang/a:ref:refs/heads/main")
+		let b <- api.POST("/v2/runs", old) by CanaryRun("repo:bynk-lang/a:ref:refs/heads/main")
 		expect b is Ok(_)
 		let runs <- Board("main").all()
 		expect runs.filter((r) => r.result == "pass").count() == 1
@@ -94,8 +94,8 @@ suite compat.board {
 			result: "fail",
 			run_url: "https://github.com/bynk-lang/a/actions/runs/2",
 		}
-		let a <- api.POST("/runs", first) by Canary
-		let b <- api.POST("/runs", second) by Canary
+		let a <- api.POST("/v2/runs", first) by CanaryRun("repo:bynk-lang/a:ref:refs/heads/main")
+		let b <- api.POST("/v2/runs", second) by CanaryRun("repo:bynk-lang/a:ref:refs/heads/main")
 		expect b is Ok(_)
 		let runs <- Board("main").all()
 		expect runs.filter((r) => r.result == "pass").count() == 1
@@ -116,8 +116,8 @@ suite compat.board {
 			bynk_version: "0.309.4",
 			run_url: "https://github.com/bynk-lang/a/actions/runs/2",
 		}
-		let x <- api.POST("/runs", a) by Canary
-		let y <- api.POST("/runs", b) by Canary
+		let x <- api.POST("/v2/runs", a) by CanaryRun("repo:bynk-lang/a:ref:refs/heads/main")
+		let y <- api.POST("/v2/runs", b) by CanaryRun("repo:bynk-lang/a:ref:refs/heads/main")
 		let n <- Board("main").size()
 		expect n == 2
 	}

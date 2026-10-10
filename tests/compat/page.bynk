@@ -1,0 +1,79 @@
+suite compat.page {
+	case "escape covers the HTML specials" {
+		expect escape("<a href=\"x\">&</a>") == "&lt;a href=&quot;x&quot;&gt;&amp;&lt;/a&gt;"
+	}
+
+	case "columns are the newest versions first, up to the limit" {
+		let runs = [
+			Run {
+				repo: "bynk-lang/a",
+				kind: "example",
+				bynk_version: "0.309.3",
+				result: "pass",
+				commit: "0123456789abcdef0123456789abcdef01234567",
+				run_url: "https://github.com/bynk-lang/a/actions/runs/1",
+				finished_at: "2026-10-07T12:00:00Z",
+			},
+			Run {
+				repo: "bynk-lang/a",
+				kind: "example",
+				bynk_version: "0.309.4",
+				result: "fail",
+				commit: "0123456789abcdef0123456789abcdef01234567",
+				run_url: "https://github.com/bynk-lang/a/actions/runs/2",
+				finished_at: "2026-10-07T13:00:00Z",
+			},
+			Run {
+				repo: "bynk-lang/b",
+				kind: "action",
+				bynk_version: "0.309.0",
+				result: "pass",
+				commit: "0123456789abcdef0123456789abcdef01234567",
+				run_url: "https://github.com/bynk-lang/b/actions/runs/3",
+				finished_at: "2026-10-07T06:00:00Z",
+			},
+		]
+		let cols = columns(runs, 2)
+		expect cols.count() == 2
+		expect cols.first() == Some("0.309.4")
+		expect cols.skip(1).first() == Some("0.309.3")
+	}
+
+	case "an empty board says so" {
+		let page = render([], 8)
+		expect page.contains("No results yet.")
+		expect page.contains("<table") == false
+	}
+
+	case "a board shows each result, linked to its run, and a dash for a gap" {
+		let runs = [
+			Run {
+				repo: "bynk-lang/a",
+				kind: "example",
+				bynk_version: "0.309.4",
+				result: "pass",
+				commit: "0123456789abcdef0123456789abcdef01234567",
+				run_url: "https://github.com/bynk-lang/a/actions/runs/1",
+				finished_at: "2026-10-07T12:00:00Z",
+			},
+			Run {
+				repo: "bynk-lang/b",
+				kind: "action",
+				bynk_version: "0.309.3",
+				result: "fail",
+				commit: "0123456789abcdef0123456789abcdef01234567",
+				run_url: "https://github.com/bynk-lang/b/actions/runs/2",
+				finished_at: "2026-10-07T11:00:00Z",
+			},
+		]
+		let page = render(runs, 8)
+		expect page.contains(
+			"<td class=\"pass\"><a href=\"https://github.com/bynk-lang/a/actions/runs/1\""
+		)
+		expect page.contains(
+			"<td class=\"fail\"><a href=\"https://github.com/bynk-lang/b/actions/runs/2\""
+		)
+		expect page.contains("<td class=\"none\">")
+		expect page.contains("<td class=\"kind\">action</td>")
+	}
+}

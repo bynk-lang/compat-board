@@ -3,9 +3,11 @@ context compat.board
 uses compat.model
 uses compat.page
 
--- The Bynk compatibility board: the org canary POSTs each run's result here
--- (`POST /runs`, signed), and the board shows the latest result per repository
--- and Bynk version, as JSON (`GET /board.json`) and as a page (`GET /`).
+-- The Bynk compatibility board: the org canary POSTs each run's result here,
+-- authenticated by the run's GitHub OIDC token (`POST /v2/runs`) or, until
+-- every caller has moved over, by the shared key (`POST /runs`). The board
+-- shows the latest result per repository and Bynk version, as JSON
+-- (`GET /board.json`) and as a page (`GET /`).
 ---
 The canary's result reporter. It signs `<X-Timestamp>.<body>` with the
 shared key (HMAC-SHA256), and the boundary rejects a bad signature, or a
@@ -19,6 +21,43 @@ actor Canary {
 		timestamp = "X-Timestamp",
 		tolerance = 300
 	)
+}
+
+---
+A canary run, as GitHub Actions' OIDC token names it in `sub`: a run on a
+branch of a bynk-lang repository. GitHub has two formats. Repositories
+created before 15 July 2026 use `repo:bynk-lang/NAME:ref:refs/heads/BRANCH`;
+later ones add the owner's and repository's immutable IDs,
+`repo:bynk-lang@295025398/NAME@ID:ref:refs/heads/BRANCH`. A pull request's
+run (`…:pull_request`) is not a canary run.
+---
+type RunSubject = String where Matches("repo:bynk-lang(?:@295025398)?/[A-Za-z0-9._-]+(?:@[0-9]+)?:ref:refs/heads/.+")
+
+---
+A canary run authenticated by the GitHub Actions OIDC token it mints for
+this board's URL. No secret: the trust root is GitHub's public key set.
+The run's repository is in its identity, so a report can only be for the
+repository that sent it.
+---
+actor CanaryRun {
+	auth = Oidc(
+		issuer = "https://token.actions.githubusercontent.com",
+		audience = "https://compat-board.accuser.workers.dev",
+		jwks = "https://token.actions.githubusercontent.com/.well-known/jwks"
+	),
+	identity = RunSubject
+}
+
+---
+The `owner/name` a run's subject names, whichever format it's in: the
+`repo:` prefix and any `@ID` suffixes are dropped.
+---
+fn subjectRepo(subject: String) -> String {
+	let path = subject.split(":").skip(1).first().getOrElse("")
+	let parts = path.split("/")
+	let owner = parts.first().getOrElse("").split("@").first().getOrElse("")
+	let name = parts.skip(1).first().getOrElse("").split("@").first().getOrElse("")
+	"\(owner)/\(name)"
 }
 
 ---
@@ -77,6 +116,20 @@ service api from http {
 	on POST("/runs") (body: Run) -> Effect[HttpResult[Ack]] by Canary {
 		let stored <- Board("main").save(body)
 		if stored { Created(Ack { stored: true }) } else { Ok(Ack { stored: false }) }
+	}
+
+	---
+	The same report, authenticated by the run's OIDC token instead of the
+	shared key. `403` if the report is for a different repository than the
+	run that sent it.
+	---
+	on POST("/v2/runs") (body: Run) -> Effect[HttpResult[Ack]] by run: CanaryRun {
+		if subjectRepo("\(run.identity)") != "\(body.repo)" {
+			Forbidden
+		} else {
+			let stored <- Board("main").save(body)
+			if stored { Created(Ack { stored: true }) } else { Ok(Ack { stored: false }) }
+		}
 	}
 
 	on GET("/board.json") () -> Effect[HttpResult[BoardView]] by Visitor {

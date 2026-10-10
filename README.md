@@ -13,7 +13,8 @@ Bynk version.
 
 | Route | Who | What |
 | --- | --- | --- |
-| `POST /runs` | the canary, signed | Record one result. The body and signature are specified in [`canary/REPORTING.md`](https://github.com/bynk-lang/.github/blob/main/canary/REPORTING.md). |
+| `POST /v2/runs` | a canary run, with its GitHub OIDC token | Record one result. The body is as for `/runs`; the run authenticates with the OIDC token GitHub Actions mints for audience `https://compat-board.accuser.workers.dev`. `403` unless the body's `repo` is the run's own repository. |
+| `POST /runs` | the canary, signed with the shared key (being retired) | Record one result. The body and signature are specified in [`canary/REPORTING.md`](https://github.com/bynk-lang/.github/blob/main/canary/REPORTING.md). |
 | `GET /board.json` | anyone | `{"runs": [...]}`: every result held, one per repository and version. |
 | `GET /` | anyone | The board as a page: repositories down the side, the eight newest Bynk versions across the top, each cell linked to its run. |
 

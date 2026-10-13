@@ -1,0 +1,76 @@
+/* The compat board's stylesheet: a compatibility matrix, light and dark. */
+
+body {
+  font: 15px/1.5 system-ui, sans-serif;
+  margin: 2rem;
+  color: #1f2328;
+  background: #fff;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: .35rem .7rem;
+  border: 1px solid #d0d7de;
+  text-align: left;
+}
+
+thead th {
+  background: #f6f8fa;
+}
+
+td.pass {
+  background: #dafbe1;
+}
+
+td.fail {
+  background: #ffebe9;
+}
+
+td.none {
+  color: #8c959f;
+  text-align: center;
+}
+
+td a {
+  color: inherit;
+}
+
+td.kind {
+  color: #59636e;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    color: #e6edf3;
+    background: #0d1117;
+  }
+
+  th,
+  td {
+    border-color: #30363d;
+  }
+
+  thead th {
+    background: #161b22;
+  }
+
+  td.pass {
+    background: #12361f;
+  }
+
+  td.fail {
+    background: #4b1113;
+  }
+
+  td.kind {
+    color: #9198a1;
+  }
+
+  a {
+    color: #4493f8;
+  }
+}

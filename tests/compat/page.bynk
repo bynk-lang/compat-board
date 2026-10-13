@@ -98,4 +98,13 @@ suite compat.page {
 		expect page.contains("<td class=\"kind\">action</td>")
 		expect page.contains("<td class=\"kind\">example</td>") == false
 	}
+
+	case "the page links the stylesheet asset, with no inline CSS" {
+		let page = render([], 8)
+		expect page.contains("<link rel=\"stylesheet\" href=\"\(style.url)\">")
+		expect page.contains("<style") == false
+		let url = style.url
+		expect url.startsWith("/_assets/board.")
+		expect url.endsWith(".css")
+	}
 }

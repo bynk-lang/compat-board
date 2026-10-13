@@ -7,6 +7,7 @@ uses compat.page
 -- authenticated by the run's GitHub OIDC token (`POST /v2/runs`), and the
 -- board shows the latest result per repository and Bynk version, as JSON
 -- (`GET /board.json`) and as a page (`GET /`).
+
 ---
 A canary run, as GitHub Actions' OIDC token names it in `sub`: a run on a
 branch of a bynk-lang repository. GitHub has two formats. Repositories

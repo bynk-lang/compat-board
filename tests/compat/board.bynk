@@ -190,4 +190,14 @@ suite compat.board {
 		let n <- Board("main").size()
 		expect n == 0
 	}
+
+	-- The platform serves the stylesheet before the Worker runs; the suite
+	-- answers as it would.
+	case "the stylesheet is served as CSS" {
+		let r <- api.GET(style)
+		match r {
+			Raw(_, ct) => expect ct == "text/css; charset=utf-8",
+			_ => expect false,
+		}
+	}
 }

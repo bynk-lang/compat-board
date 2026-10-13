@@ -1,7 +1,8 @@
 commons compat.model
 
--- The report the org canary POSTs, exactly the body of `POST /runs` in
+-- The report the org canary POSTs, exactly the body of `POST /v2/runs` in
 -- bynk-lang/.github canary/REPORTING.md, and how versions are ordered.
+
 ---
 A repository, as `owner/name`.
 ---
@@ -38,7 +39,7 @@ When the result was decided: RFC 3339, UTC, to the second.
 type FinishedAt = String where Matches("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z")
 
 ---
-One canary result, exactly the body of `POST /runs` in bynk-lang/.github's
+One canary result, exactly the body of `POST /v2/runs` in bynk-lang/.github's
 `canary/REPORTING.md`.
 ---
 type Run = {

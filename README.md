@@ -29,8 +29,9 @@ All of the board lives in one agent (a Durable Object), so each report is compar
 ## Layout
 
 ```text
+assets/board.css         the page's stylesheet, served by the platform at a content-hashed URL
 src/compat/model.bynk    commons compat.model: the report types (REPORTING.md's body), version ordering
-src/compat/page.bynk     commons compat.page: the HTML page
+src/compat/page.bynk     commons compat.page: the HTML page, and its stylesheet asset
 src/compat/board.bynk    context compat.board: the CanaryRun actor (OIDC), the Board agent, the HTTP service
 tests/compat/model.bynk  version ordering
 tests/compat/page.bynk   escaping, columns, the rendered page

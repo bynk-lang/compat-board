@@ -27,7 +27,7 @@ repository that sent it.
 actor CanaryRun {
 	auth = Oidc(
 		issuer = "https://token.actions.githubusercontent.com",
-		audience = "https://compat-board.accuser.workers.dev",
+		audience = "https://compat-board.bynk-lang.workers.dev",
 		jwks = "https://token.actions.githubusercontent.com/.well-known/jwks"
 	),
 	identity = RunSubject

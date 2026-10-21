@@ -19,5 +19,5 @@ jobs:
           persist-credentials: false
       - uses: bynk-lang/bynk-ci@v1
         with:
-          version: 0.330.4   # bump deliberately; the canary tests newer releases
+          version: 0.377.2   # bump deliberately; the canary tests newer releases
           source: .

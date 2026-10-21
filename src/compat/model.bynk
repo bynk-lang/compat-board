@@ -1,7 +1,7 @@
 commons compat.model
 
--- The report the org canary POSTs, exactly the body of `POST /v2/runs` in
--- bynk-lang/.github canary/REPORTING.md, and how versions are ordered.
+// The report the org canary POSTs, exactly the body of `POST /v2/runs` in
+// bynk-lang/.github canary/REPORTING.md, and how versions are ordered.
 
 ---
 A repository, as `owner/name`.

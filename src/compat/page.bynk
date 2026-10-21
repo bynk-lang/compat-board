@@ -4,8 +4,8 @@ uses compat.model
 uses bynk.string
 uses bynk.list
 
--- The board as an HTML page: repositories down the side, the newest Bynk
--- versions across the top, each cell linked to its run.
+// The board as an HTML page: repositories down the side, the newest Bynk
+// versions across the top, each cell linked to its run.
 
 ---
 The board's stylesheet, served by the platform at a content-hashed URL.

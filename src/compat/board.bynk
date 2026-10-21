@@ -3,10 +3,10 @@ context compat.board
 uses compat.model
 uses compat.page
 
--- The Bynk compatibility board: the org canary POSTs each run's result here,
--- authenticated by the run's GitHub OIDC token (`POST /v2/runs`), and the
--- board shows the latest result per repository and Bynk version, as JSON
--- (`GET /board.json`) and as a page (`GET /`).
+// The Bynk compatibility board: the org canary POSTs each run's result here,
+// authenticated by the run's GitHub OIDC token (`POST /v2/runs`), and the
+// board shows the latest result per repository and Bynk version, as JSON
+// (`GET /board.json`) and as a page (`GET /`).
 
 ---
 A canary run, as GitHub Actions' OIDC token names it in `sub`: a run on a

@@ -176,6 +176,19 @@ suite compat.board {
 		expect again is Ok(_)
 	}
 
+	case "an app's report is stored" {
+		let r <- api.POST("/v2/runs", Run {
+			repo: "bynk-lang/playground",
+			kind: "app",
+			bynk_version: "0.314.23",
+			result: "pass",
+			commit: "0123456789abcdef0123456789abcdef01234567",
+			run_url: "https://github.com/bynk-lang/playground/actions/runs/1",
+			finished_at: "2026-10-10T12:00:00Z",
+		}) by CanaryRun("repo:bynk-lang/playground:ref:refs/heads/main")
+		expect r is Created(_)
+	}
+
 	case "a run can't report for another repository" {
 		let r <- api.POST("/v2/runs", Run {
 			repo: "bynk-lang/compat-board",

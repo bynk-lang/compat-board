@@ -22,7 +22,7 @@ for each repository and Bynk version.
 - **No change:** `200 {"stored": false}`. That's for a retried report (the same `run_url`), or one no newer than the result already held for that repository and version. Results are compared by `finished_at`, so of two runs that finish in the same second, the first one reported is kept.
 - **No valid token** for this board's audience, or a token whose `sub` isn't a branch run of a bynk-lang repository (another org's, a pull request's): `401`. The token is verified against GitHub's public keys; there's no secret.
 - **A report for another repository** than the run that sent it: `403`.
-- **Body outside the contract** (an unknown `kind`, a `result` other than `pass` or `fail`, a malformed version, commit, run URL or timestamp): `400`.
+- **Body outside the contract** (a `kind` other than `example`, `action`, `app` or `book`, a `result` other than `pass` or `fail`, a malformed version, commit, run URL or timestamp): `400`.
 
 All of the board lives in one agent (a Durable Object), so each report is compared with the result it would replace and stored in one step.
 

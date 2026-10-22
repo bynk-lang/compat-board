@@ -11,7 +11,7 @@ type Repo = String where Matches("[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?/[A-Za
 ---
 A repository's kind in the canary registry (`canary/repos.json`).
 ---
-type Kind = String where Matches("example|action|book")
+type Kind = String where Matches("example|action|app|book")
 
 ---
 A Bynk release, bare: `0.309.4`, or a pre-release such as `0.310.0-rc1`.

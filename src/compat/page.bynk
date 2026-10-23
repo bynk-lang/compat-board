@@ -113,10 +113,17 @@ fn page(content: String) -> String {
 		],
 		""
 	)
-	let canary = link("https://github.com/bynk-lang/.github/blob/main/canary/README.md", "org canary")
+	let canary = link(
+		"https://github.com/bynk-lang/.github/blob/main/canary/README.md",
+		"org canary"
+	)
 	let intro = "Which Bynk releases each repository in the \(canary) passes with. Each cell links to its run. \(link("/board.json", "JSON"))"
 	let body = join([tag("h1", [], "Bynk compatibility"), tag("p", [], intro), content], "")
-	let html = tag("html", [attr("lang", "en")], join([tag("head", [], head), tag("body", [], body)], ""))
+	let html = tag(
+		"html",
+		[attr("lang", "en")],
+		join([tag("head", [], head), tag("body", [], body)], "")
+	)
 	"<!doctype html>\(html)"
 }
 
@@ -125,10 +132,8 @@ The whole board as an HTML page: repositories down the side, the newest
 `limit` Bynk versions across the top.
 ---
 fn render(runs: List[Run], limit: Int) -> String {
-	page(
-		match runs.count() {
-			0 => tag("p", [], "No results yet."),
-			_ => table(runs, columns(runs, limit)),
-		}
-	)
+	page(match runs.count() {
+		0 => tag("p", [], "No results yet."),
+		_ => table(runs, columns(runs, limit)),
+	})
 }

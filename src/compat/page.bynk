@@ -33,14 +33,40 @@ The repositories to show as rows, alphabetically.
 fn rows(runs: List[Run]) -> List[Repo] { runs.map((r) => r.repo).distinct().sortBy((r) => r) }
 
 ---
+One ` name="value"` attribute, the value escaped.
+---
+fn attr(name: String, value: String) -> String { " \(name)=\"\(escape(value))\"" }
+
+---
+An element: `inner` is markup already, so escape any text before passing it.
+---
+fn tag(name: String, attrs: List[String], inner: String) -> String {
+	"<\(name)\(join(attrs, ""))>\(inner)</\(name)>"
+}
+
+---
+A link to `href` showing the text `label`.
+---
+fn link(href: String, label: String) -> String { tag("a", [attr("href", href)], escape(label)) }
+
+---
+A column header (`scope` is `col`) or row header (`row`) holding `inner` markup.
+---
+fn th(scope: String, inner: String) -> String { tag("th", [attr("scope", scope)], inner) }
+
+---
 One cell: the result for a repository at a version, linked to its run, or
 a dash if nothing was reported.
 ---
 fn cell(runs: List[Run], repo: Repo, version: Version) -> String {
 	let found = runs.filter((r) => r.repo == repo && r.bynk_version == version).first()
 	match found {
-		Some(r) => "<td class=\"\(r.result)\"><a href=\"\(escape(r.run_url))\" title=\"\(escape(r.finished_at))\">\(r.result)</a></td>",
-		None => "<td class=\"none\">–</td>",
+		Some(r) => tag(
+			"td",
+			[attr("class", r.result)],
+			tag("a", [attr("href", r.run_url), attr("title", r.finished_at)], r.result)
+		),
+		None => tag("td", [attr("class", "none")], "–"),
 	}
 }
 
@@ -56,24 +82,53 @@ fn kindOf(runs: List[Run], repo: Repo) -> String {
 }
 
 ---
+One repository's row: its linked name, its kind, then a cell per version.
+---
+fn row(runs: List[Run], versions: List[Version], repo: Repo) -> String {
+	let cells = join(versions.map((v) => cell(runs, repo, v)), "")
+	let kind = tag("td", [attr("class", "kind")], escape(kindOf(runs, repo)))
+	tag("tr", [], join([th("row", link("https://github.com/\(repo)", repo)), kind, cells], ""))
+}
+
+---
+The results table: a header of versions, then a row per repository.
+---
+fn table(runs: List[Run], versions: List[Version]) -> String {
+	let head = join(versions.map((v) => th("col", escape(v))), "")
+	let body = join(rows(runs).map((repo) => row(runs, versions, repo)), "")
+	let labels = join([th("col", "Repository"), th("col", "Kind"), head], "")
+	tag("table", [], join([tag("thead", [], tag("tr", [], labels)), tag("tbody", [], body)], ""))
+}
+
+---
+The page around the results: head, heading, intro and `content`.
+---
+fn page(content: String) -> String {
+	let head = join(
+		[
+			"<meta charset=\"utf-8\">",
+			"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">",
+			tag("title", [], "Bynk compatibility"),
+			"<link rel=\"stylesheet\" href=\"\(style.url)\">",
+		],
+		""
+	)
+	let canary = link("https://github.com/bynk-lang/.github/blob/main/canary/README.md", "org canary")
+	let intro = "Which Bynk releases each repository in the \(canary) passes with. Each cell links to its run. \(link("/board.json", "JSON"))"
+	let body = join([tag("h1", [], "Bynk compatibility"), tag("p", [], intro), content], "")
+	let html = tag("html", [attr("lang", "en")], join([tag("head", [], head), tag("body", [], body)], ""))
+	"<!doctype html>\(html)"
+}
+
+---
 The whole board as an HTML page: repositories down the side, the newest
 `limit` Bynk versions across the top.
 ---
 fn render(runs: List[Run], limit: Int) -> String {
-	let versions = columns(runs, limit)
-	let head = join(versions.map((v) => "<th scope=\"col\">\(escape(v))</th>"), "")
-	let body = join(
-		rows(runs).map(
-			(repo) => {
-				let cells = join(versions.map((v) => cell(runs, repo, v)), "")
-				"<tr><th scope=\"row\"><a href=\"https://github.com/\(escape(repo))\">\(escape(repo))</a></th><td class=\"kind\">\(escape(kindOf(runs, repo)))</td>\(cells)</tr>"
-			}
-		),
-		""
+	page(
+		match runs.count() {
+			0 => tag("p", [], "No results yet."),
+			_ => table(runs, columns(runs, limit)),
+		}
 	)
-	let table = match runs.count() {
-		0 => "<p>No results yet.</p>",
-		_ => "<table><thead><tr><th scope=\"col\">Repository</th><th scope=\"col\">Kind</th>\(head)</tr></thead><tbody>\(body)</tbody></table>",
-	}
-	"<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Bynk compatibility</title><link rel=\"stylesheet\" href=\"\(style.url)\"></head><body><h1>Bynk compatibility</h1><p>Which Bynk releases each repository in the <a href=\"https://github.com/bynk-lang/.github/blob/main/canary/README.md\">org canary</a> passes with. Each cell links to its run. <a href=\"/board.json\">JSON</a></p>\(table)</body></html>"
 }

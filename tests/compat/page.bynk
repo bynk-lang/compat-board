@@ -99,6 +99,25 @@ suite compat.page {
 		expect page.contains("<td class=\"kind\">example</td>") == false
 	}
 
+	case "the page shell is exactly this markup" {
+		let expected = "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Bynk compatibility</title><link rel=\"stylesheet\" href=\"\(style.url)\"></head><body><h1>Bynk compatibility</h1><p>Which Bynk releases each repository in the <a href=\"https://github.com/bynk-lang/.github/blob/main/canary/README.md\">org canary</a> passes with. Each cell links to its run. <a href=\"/board.json\">JSON</a></p><p>No results yet.</p></body></html>"
+		expect render([], 8) == expected
+	}
+
+	case "a results table is exactly this markup" {
+		let run = Run {
+			repo: "bynk-lang/a",
+			kind: "example",
+			bynk_version: "0.309.4",
+			result: "pass",
+			commit: "0123456789abcdef0123456789abcdef01234567",
+			run_url: "https://github.com/bynk-lang/a/actions/runs/1",
+			finished_at: "2026-10-07T12:00:00Z",
+		}
+		let expected = "<table><thead><tr><th scope=\"col\">Repository</th><th scope=\"col\">Kind</th><th scope=\"col\">0.309.4</th></tr></thead><tbody><tr><th scope=\"row\"><a href=\"https://github.com/bynk-lang/a\">bynk-lang/a</a></th><td class=\"kind\">example</td><td class=\"pass\"><a href=\"https://github.com/bynk-lang/a/actions/runs/1\" title=\"2026-10-07T12:00:00Z\">pass</a></td></tr></tbody></table>"
+		expect table([run], columns([run], 8)) == expected
+	}
+
 	case "the page links the stylesheet asset, with no inline CSS" {
 		let page = render([], 8)
 		expect page.contains("<link rel=\"stylesheet\" href=\"\(style.url)\">")

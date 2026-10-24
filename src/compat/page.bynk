@@ -13,6 +13,11 @@ The board's stylesheet, served by the platform at a content-hashed URL.
 asset style = "assets/board.css"
 
 ---
+The page shell, compiled in from a file and never served.
+---
+embed shell = "embeds/page.html"
+
+---
 Escapes text for an HTML body or a double-quoted attribute.
 ---
 fn escape(s: String) -> String {
@@ -109,30 +114,12 @@ fn table(runs: List[Run], versions: List[Version]) -> String {
 }
 
 ---
-The page around the results: head, heading, intro and `content`.
+The page around the results: head, heading and intro live in
+`embeds/page.html`; `{{style}}` is the stylesheet's URL and `{{content}}` is
+where `content` goes.
 ---
 fn page(content: String) -> String {
-	let head = join(
-		[
-			"<meta charset=\"utf-8\">",
-			"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">",
-			tag("title", [], "Bynk compatibility"),
-			"<link rel=\"stylesheet\" href=\"\(style.url)\">",
-		],
-		""
-	)
-	let canary = link(
-		"https://github.com/bynk-lang/.github/blob/main/canary/README.md",
-		"org canary"
-	)
-	let intro = "Which Bynk releases each repository in the \(canary) passes with. Each cell links to its run. \(link("/board.json", "JSON"))"
-	let body = join([tag("h1", [], "Bynk compatibility"), tag("p", [], intro), content], "")
-	let html = tag(
-		"html",
-		[attr("lang", "en")],
-		join([tag("head", [], head), tag("body", [], body)], "")
-	)
-	"<!doctype html>\(html)"
+	shell.replace("{{style}}", style.url).replace("{{content}}", content)
 }
 
 ---

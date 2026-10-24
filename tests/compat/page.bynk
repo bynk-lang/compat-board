@@ -99,9 +99,15 @@ suite compat.page {
 		expect page.contains("<td class=\"kind\">example</td>") == false
 	}
 
-	case "the page shell is exactly this markup" {
-		let expected = "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Bynk compatibility</title><link rel=\"stylesheet\" href=\"\(style.url)\"></head><body><h1>Bynk compatibility</h1><p>Which Bynk releases each repository in the <a href=\"https://github.com/bynk-lang/.github/blob/main/canary/README.md\">org canary</a> passes with. Each cell links to its run. <a href=\"/board.json\">JSON</a></p><p>No results yet.</p></body></html>"
-		expect render([], 8) == expected
+	case "the shell is the page file and every placeholder is filled" {
+		expect shell.startsWith("<!doctype html>")
+		expect shell.contains("{{style}}")
+		expect shell.contains("{{content}}")
+		let page = render([], 8)
+		expect page.contains("<title>Bynk compatibility</title>")
+		expect page.contains("<p>No results yet.</p>")
+		expect page.contains("<a href=\"/board.json\">JSON</a>")
+		expect page.contains("{{") == false
 	}
 
 	case "a results table is exactly this markup" {

@@ -1,3 +1,17 @@
-version = 1
+version = 2
 
 [events]
+
+[agents."compat.board.Board"]
+version = 1
+floor = 1
+
+[[agents."compat.board.Board".shapes]]
+version = 1
+additive = false
+
+[[agents."compat.board.Board".shapes.fields]]
+name = "latest"
+kind = "Map"
+type = "String, {bynk_version: String, commit: String, finished_at: String, kind: String, repo: String, result: String, run_url: String}"
+refinement = 'String, {bynk_version: String where Matches("[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.]+)?"), commit: String where Matches("[0-9a-f]{40}"), finished_at: String where Matches("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z"), kind: String where Matches("example|action|app|book"), repo: String where Matches("[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?/[A-Za-z0-9._-]+"), result: String where Matches("pass|fail"), run_url: String where Matches("https://github\\.com/[^/]+/[^/]+/actions/runs/[0-9]+(?:/attempts/[0-9]+)?")}'

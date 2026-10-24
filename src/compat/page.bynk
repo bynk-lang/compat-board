@@ -30,12 +30,16 @@ fn columns(runs: List[Run], limit: Int) -> List[Version] {
 ---
 The repositories to show as rows, alphabetically.
 ---
-fn rows(runs: List[Run]) -> List[Repo] { runs.map((r) => r.repo).distinct().sortBy((r) => r) }
+fn rows(runs: List[Run]) -> List[Repo] {
+	runs.map((r) => r.repo).distinct().sortBy((r) => r)
+}
 
 ---
 One ` name="value"` attribute, the value escaped.
 ---
-fn attr(name: String, value: String) -> String { " \(name)=\"\(escape(value))\"" }
+fn attr(name: String, value: String) -> String {
+	" \(name)=\"\(escape(value))\""
+}
 
 ---
 An element: `inner` is markup already, so escape any text before passing it.
@@ -47,12 +51,16 @@ fn tag(name: String, attrs: List[String], inner: String) -> String {
 ---
 A link to `href` showing the text `label`.
 ---
-fn link(href: String, label: String) -> String { tag("a", [attr("href", href)], escape(label)) }
+fn link(href: String, label: String) -> String {
+	tag("a", [attr("href", href)], escape(label))
+}
 
 ---
 A column header (`scope` is `col`) or row header (`row`) holding `inner` markup.
 ---
-fn th(scope: String, inner: String) -> String { tag("th", [attr("scope", scope)], inner) }
+fn th(scope: String, inner: String) -> String {
+	tag("th", [attr("scope", scope)], inner)
+}
 
 ---
 One cell: the result for a repository at a version, linked to its run, or

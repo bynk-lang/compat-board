@@ -19,5 +19,5 @@ jobs:
           persist-credentials: false
       - uses: bynk-lang/bynk-ci@v1
         with:
-          version: 0.403.3   # bump deliberately; the canary tests newer releases
+          version-file: BYNK_VERSION   # the canary proposes moving it
           source: .

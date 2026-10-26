@@ -62,7 +62,7 @@ exercise `POST /v2/runs`. They supply the run's identity with
 The Worker is called `compat-board`, so it is served at
 `https://compat-board.<your-subdomain>.workers.dev`.
 
-**After the first deploy,** `bynk.deploy.lock` changes, because it records the deployed context. The action never commits, so the workflow uploads the new lock as an artifact named `bynk.deploy.lock`. Commit it.
+**When a deploy changes `bynk.deploy.lock`,** as the first one does because it records the deployed context, bynk-deploy opens a pull request that commits it, through the org's bump App (the workflow mints its token). Merge it: later deploys rely on what it records. Without the App, the workflow uploads the new lock as an artifact named `bynk.deploy.lock` to commit instead.
 
 ## Reporting needs no setup
 

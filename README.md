@@ -42,7 +42,7 @@ tests/compat/board.bynk  storage rules (new, retried, newer, older, per version)
 ## Run it locally
 
 ```sh
-bynkc test .
+bynk test .
 bynk dev
 ```
 

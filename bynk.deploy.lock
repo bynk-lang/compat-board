@@ -4,7 +4,6 @@ version = 1
 
 [environments.default.workers.compat-board]
 deployed = true
-assets = ["/_assets/board.ebf781e033da8e55.css"]
 
 [environments.default.workers.compat-board.contracts]
 
